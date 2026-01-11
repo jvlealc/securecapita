@@ -1,6 +1,7 @@
 package io.github.joaovitorleal.securecapita.repository;
 
 import io.github.joaovitorleal.securecapita.domain.User;
+import io.github.joaovitorleal.securecapita.dto.UserDto;
 
 import java.util.Collection;
 
@@ -14,4 +15,6 @@ public interface UserRepository<T extends User> {
 
     /* Others operations */
     User findUserByEmail(String email);
+
+    void sendVerificationCode(UserDto userDTO);
 }

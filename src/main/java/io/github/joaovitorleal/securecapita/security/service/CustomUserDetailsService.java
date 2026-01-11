@@ -1,28 +1,26 @@
-package io.github.joaovitorleal.securecapita.service.implementation;
+package io.github.joaovitorleal.securecapita.security.service;
 
-import io.github.joaovitorleal.securecapita.domain.CustomUserDetails;
 import io.github.joaovitorleal.securecapita.domain.Role;
 import io.github.joaovitorleal.securecapita.domain.User;
 import io.github.joaovitorleal.securecapita.repository.RoleRepository;
 import io.github.joaovitorleal.securecapita.repository.UserRepository;
-import io.github.joaovitorleal.securecapita.repository.implementation.RoleRepositoryImpl;
-import io.github.joaovitorleal.securecapita.repository.implementation.UserRepositoryImpl;
-import io.github.joaovitorleal.securecapita.service.CustomUserDetailsService;
+import io.github.joaovitorleal.securecapita.security.model.CustomUserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CustomUserDetailsServiceImpl implements CustomUserDetailsService {
+public class CustomUserDetailsService implements UserDetailsService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CustomUserDetailsServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CustomUserDetailsService.class);
 
     private final UserRepository<User> userRepository;
     private final RoleRepository<Role> roleRepository;
 
-    public CustomUserDetailsServiceImpl(UserRepository<User> userRepository, RoleRepository<Role> roleRepository) {
+    public CustomUserDetailsService(UserRepository<User> userRepository, RoleRepository<Role> roleRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
     }

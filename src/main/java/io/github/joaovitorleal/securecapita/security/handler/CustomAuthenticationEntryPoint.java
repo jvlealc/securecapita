@@ -1,7 +1,7 @@
-package io.github.joaovitorleal.securecapita.handler;
+package io.github.joaovitorleal.securecapita.security.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.joaovitorleal.securecapita.domain.HttpResponse;
+import io.github.joaovitorleal.securecapita.dto.HttpResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

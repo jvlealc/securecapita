@@ -2,8 +2,8 @@ package io.github.joaovitorleal.securecapita.repository.implementation;
 
 import io.github.joaovitorleal.securecapita.domain.Role;
 import io.github.joaovitorleal.securecapita.exception.ApiException;
-import io.github.joaovitorleal.securecapita.exception.NotFoundRoleByUserIdException;
-import io.github.joaovitorleal.securecapita.exception.NotFoundRoleNameException;
+import io.github.joaovitorleal.securecapita.exception.RoleNotFoundByUserIdException;
+import io.github.joaovitorleal.securecapita.exception.RoleNotFoundByNameException;
 import io.github.joaovitorleal.securecapita.repository.RoleRepository;
 import io.github.joaovitorleal.securecapita.rowmapper.RoleRowMapper;
 import org.slf4j.Logger;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 
-import static io.github.joaovitorleal.securecapita.enumeration.RoleType.ROLE_USER;
 import static io.github.joaovitorleal.securecapita.query.RoleQuery.*;
 import static java.util.Map.of;
 
@@ -64,7 +63,7 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
             jdbcTemplate.update(INSERT_ROLE_TO_USER_QUERY, of("userId", userId, "roleId", role.getId()));
         } catch (EmptyResultDataAccessException e) {
             LOGGER.warn("No role found with name='{}'", roleName);
-            throw new NotFoundRoleNameException("No role found with name: " + roleName);
+            throw new RoleNotFoundByNameException("No role found with name: " + roleName);
         } catch (Exception e) {
             LOGGER.error("Error while trying to add role '{}' to user with ID: {}. Error: {}", roleName, userId, e.getMessage(), e);
             throw new ApiException("An error occurred. Please try again later.", e);
@@ -77,7 +76,7 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
             return jdbcTemplate.queryForObject(SELECT_ROLE_BY_USER_ID_QUERY, of("userId", userId), new RoleRowMapper());
         } catch (EmptyResultDataAccessException e) {
             LOGGER.warn( "Could not find role with User ID '{}'", userId);
-            throw new NotFoundRoleByUserIdException("No role found by User ID: " + userId);
+            throw new RoleNotFoundByUserIdException("No role found by User ID: " + userId);
         } catch (Exception e) {
             LOGGER.error("Error while trying to fetching Role by User ID '{}'", userId, e);
             throw new ApiException("An error occurred. Please try again later.", e);

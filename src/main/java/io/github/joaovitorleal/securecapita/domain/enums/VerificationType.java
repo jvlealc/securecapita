@@ -1,4 +1,4 @@
-package io.github.joaovitorleal.securecapita.enumeration;
+package io.github.joaovitorleal.securecapita.domain.enums;
 
 public enum VerificationType {
     ACCOUNT("ACCOUNT"),

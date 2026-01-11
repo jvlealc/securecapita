@@ -1,7 +1,7 @@
 package io.github.joaovitorleal.securecapita.config;
 
-import io.github.joaovitorleal.securecapita.handler.CustomAccessDeniedHandler;
-import io.github.joaovitorleal.securecapita.handler.CustomAuthenticationEntryPoint;
+import io.github.joaovitorleal.securecapita.security.handler.CustomAccessDeniedHandler;
+import io.github.joaovitorleal.securecapita.security.handler.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,7 +1,7 @@
 package io.github.joaovitorleal.securecapita.service.implementation;
 
 import io.github.joaovitorleal.securecapita.domain.User;
-import io.github.joaovitorleal.securecapita.dto.UserDTO;
+import io.github.joaovitorleal.securecapita.dto.UserDto;
 import io.github.joaovitorleal.securecapita.dtomapper.UserMapper;
 import io.github.joaovitorleal.securecapita.repository.UserRepository;
 import io.github.joaovitorleal.securecapita.service.UserService;
@@ -22,18 +22,28 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public UserDTO createUser(User user) {
+    public UserDto createUser(User user) {
         user.setPassword(encoder.encode(user.getPassword()));
-        return UserMapper.toUserDTO(userRepository.save(user));
+        return UserMapper.toUserDto(userRepository.save(user));
     }
 
     /**
      * @param email user email (username)
-     * @return {@link UserDTO}
+     * @return {@link UserDto}
      */
    @Transactional(readOnly = true)
     @Override
-    public UserDTO getUserByEmail(String email) {
-        return UserMapper.toUserDTO(userRepository.findUserByEmail(email));
+    public UserDto getUserByEmail(String email) {
+        return UserMapper.toUserDto(userRepository.findUserByEmail(email));
+    }
+
+    /**
+     * Sends verification code to authenticate the user during login
+     * when MFA is enabled.
+     * @param userDTO
+     */
+    @Override
+    public void sendVerificationCode(UserDto userDTO) {
+        userRepository.sendVerificationCode(userDTO);
     }
 }

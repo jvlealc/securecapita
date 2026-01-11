@@ -1,4 +1,4 @@
-package io.github.joaovitorleal.securecapita.form;
+package io.github.joaovitorleal.securecapita.dto.form;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

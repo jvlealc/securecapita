@@ -1,14 +1,16 @@
 package io.github.joaovitorleal.securecapita.repository.implementation;
 
-import io.github.joaovitorleal.securecapita.domain.CustomUserDetails;
 import io.github.joaovitorleal.securecapita.domain.Role;
 import io.github.joaovitorleal.securecapita.domain.User;
+import io.github.joaovitorleal.securecapita.dto.UserDto;
 import io.github.joaovitorleal.securecapita.exception.ApiException;
 import io.github.joaovitorleal.securecapita.exception.EmailAlreadyExistsException;
-import io.github.joaovitorleal.securecapita.exception.NotFoundUserByEmailException;
+import io.github.joaovitorleal.securecapita.exception.UserNotFoundByEmailException;
 import io.github.joaovitorleal.securecapita.repository.RoleRepository;
 import io.github.joaovitorleal.securecapita.repository.UserRepository;
 import io.github.joaovitorleal.securecapita.rowmapper.UserRowMapper;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -17,28 +19,23 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
-import static io.github.joaovitorleal.securecapita.enumeration.RoleType.ROLE_USER;
-import static io.github.joaovitorleal.securecapita.enumeration.VerificationType.ACCOUNT;
+import static io.github.joaovitorleal.securecapita.domain.enums.RoleType.ROLE_USER;
+import static io.github.joaovitorleal.securecapita.domain.enums.VerificationType.ACCOUNT;
 import static io.github.joaovitorleal.securecapita.query.UserQuery.*;
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 
 @Repository
 public class UserRepositoryImpl implements UserRepository<User> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserRepositoryImpl.class);
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final RoleRepository<Role> roleRepository;
@@ -96,14 +93,34 @@ public class UserRepositoryImpl implements UserRepository<User> {
     @Override
     public User findUserByEmail(String email) {
         try {
-            return jdbcTemplate.queryForObject(SELECT_USER_BY_EMAIL, Map.of("email", email), new UserRowMapper());
+            return jdbcTemplate.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
         }  catch (EmptyResultDataAccessException e) {
             LOGGER.error("Error when retrieving user by username '{}'. Error: {}", email, e.getMessage(), e);
-            throw new NotFoundUserByEmailException("No User found by email " + email);
+            throw new UserNotFoundByEmailException("No User found by email " + email);
         }  catch (Exception e) {
             LOGGER.error("An error occurred when retrieving user by username '{}'. Error: {}", email, e.getMessage(), e);
             throw new ApiException("An error occurred. Please try again later.", e);
         }
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void sendVerificationCode(UserDto userDTO) {
+        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
+        String verificationCode = secure().nextAlphanumeric(8).toUpperCase();
+        try {
+            jdbcTemplate.update(DELETE_VERIFICATION_CODE_BY_USER_ID_QUERY, Map.of("userId", userDTO.getId()));
+            jdbcTemplate.update(INSERT_VERIFICATION_CODE_QUERY, Map.of("userId", userDTO.getId(), "verificationCode", verificationCode, "expirationDate", expirationDate));
+            this.sendSMS(userDTO.getPhone(), "From: SecureCapita \nVerification code\n" + verificationCode);
+        } catch (Exception e) {
+            LOGGER.error("An error occurred when sends verification code to user ID '{}'", userDTO.getId(), e);
+            throw new ApiException("An error occurred. Please try again later.", e);
+        }
+    }
+
+    private void sendSMS(String phone, String s) {
     }
 
     private Integer getEmailCount(String userEmail) {

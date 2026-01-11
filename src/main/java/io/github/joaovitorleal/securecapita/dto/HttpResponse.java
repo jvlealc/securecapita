@@ -1,4 +1,4 @@
-package io.github.joaovitorleal.securecapita.domain;
+package io.github.joaovitorleal.securecapita.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;

@@ -1,9 +1,9 @@
 package io.github.joaovitorleal.securecapita.resource;
 
-import io.github.joaovitorleal.securecapita.domain.HttpResponse;
+import io.github.joaovitorleal.securecapita.dto.HttpResponse;
 import io.github.joaovitorleal.securecapita.domain.User;
-import io.github.joaovitorleal.securecapita.dto.UserDTO;
-import io.github.joaovitorleal.securecapita.form.LoginForm;
+import io.github.joaovitorleal.securecapita.dto.UserDto;
+import io.github.joaovitorleal.securecapita.dto.form.LoginForm;
 import io.github.joaovitorleal.securecapita.service.UserService;
 import jakarta.validation.Valid;
 
@@ -33,21 +33,13 @@ public class UserResource {
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm loginForm) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginForm.getEmail(), loginForm.getPassword()));
-        UserDTO userDTO = userService.getUserByEmail(loginForm.getEmail());
-        return ResponseEntity.ok(
-                HttpResponse.builder()
-                        .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userDTO))
-                        .message("Login successful")
-                        .status(HttpStatus.OK)
-                        .statusCode(HttpStatus.OK.value())
-                        .build()
-        );
+        UserDto userDTO = userService.getUserByEmail(loginForm.getEmail());
+        return userDTO.isUsingMfa() ? this.sendVerificationCode(userDTO) : this.sendResponse(userDTO);
     }
 
     @PostMapping
     public ResponseEntity<HttpResponse> createUser(@RequestBody @Valid User user) {
-        UserDTO userDTO = userService.createUser(user);
+        UserDto userDTO = userService.createUser(user);
         return ResponseEntity.created(this.getUri()).body(
                 HttpResponse.builder()
                         .timestamp(LocalDateTime.now().toString())
@@ -64,6 +56,31 @@ public class UserResource {
                 ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/users/<userId>")
                         .toUriString()
+        );
+    }
+
+    private ResponseEntity<HttpResponse> sendResponse(UserDto userDTO) {
+        return ResponseEntity.ok(
+                HttpResponse.builder()
+                        .timestamp(LocalDateTime.now().toString())
+                        .data(Map.of("user", userDTO))
+                        .message("Login successful")
+                        .status(HttpStatus.OK)
+                        .statusCode(HttpStatus.OK.value())
+                        .build()
+        );
+    }
+
+    private ResponseEntity<HttpResponse> sendVerificationCode(UserDto userDTO) {
+        userService.sendVerificationCode(userDTO);
+        return ResponseEntity.ok(
+                HttpResponse.builder()
+                        .timestamp(LocalDateTime.now().toString())
+                        .data(Map.of("user", userDTO))
+                        .message("Verification code sent.")
+                        .status(HttpStatus.OK)
+                        .statusCode(HttpStatus.OK.value())
+                        .build()
         );
     }
 }
