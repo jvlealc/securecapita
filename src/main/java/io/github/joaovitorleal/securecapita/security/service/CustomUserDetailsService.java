@@ -2,8 +2,8 @@ package io.github.joaovitorleal.securecapita.security.service;
 
 import io.github.joaovitorleal.securecapita.domain.Role;
 import io.github.joaovitorleal.securecapita.domain.User;
-import io.github.joaovitorleal.securecapita.repository.RoleRepository;
-import io.github.joaovitorleal.securecapita.repository.UserRepository;
+import io.github.joaovitorleal.securecapita.repository.RoleJpaRepository;
+import io.github.joaovitorleal.securecapita.repository.UserJpaRepository;
 import io.github.joaovitorleal.securecapita.security.model.CustomUserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +17,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomUserDetailsService.class);
 
-    private final UserRepository<User> userRepository;
-    private final RoleRepository<Role> roleRepository;
+    private final UserJpaRepository userJpaRepository;
 
-    public CustomUserDetailsService(UserRepository<User> userRepository, RoleRepository<Role> roleRepository) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
+    public CustomUserDetailsService(UserJpaRepository userJpaRepository, RoleJpaRepository roleJpaRepository) {
+        this.userJpaRepository = userJpaRepository;
     }
 
     /**
@@ -32,13 +30,13 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findUserByEmail(username);
+        User user = userJpaRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException(username));
         if (user == null) {
             LOGGER.error("User not found for username: {}", username);
             throw new UsernameNotFoundException("Not found user with username '" + username + "'.");
         }
         LOGGER.info("Found user in the database: '{}'", user.getEmail());
 
-        return new CustomUserDetails(user, roleRepository.getRoleByUserId(user.getId()).getPermission());
+        return new CustomUserDetails(user, user.getRole().getPermission());
     }
 }

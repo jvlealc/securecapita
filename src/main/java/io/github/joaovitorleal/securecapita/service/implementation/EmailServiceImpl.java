@@ -11,7 +11,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service("emailService")
 public class EmailServiceImpl implements NotificationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailServiceImpl.class);

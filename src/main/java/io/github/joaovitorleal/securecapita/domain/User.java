@@ -3,6 +3,7 @@ package io.github.joaovitorleal.securecapita.domain;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -57,12 +58,15 @@ public class User implements Serializable {
     @Column(length = 500)
     private String bio;
 
+    @Builder.Default
     @Column(columnDefinition = "boolean default false", nullable = false)
     private boolean enabled = false;
 
+    @Builder.Default
     @Column(name = "non_locked", columnDefinition = "boolean default true", nullable = false)
     private boolean nonLocked = true;
 
+    @Builder.Default
     @Column(name = "using_mfa", columnDefinition = "boolean default false", nullable = false)
     private boolean usingMfa = false;
 

@@ -1,7 +1,10 @@
 package io.github.joaovitorleal.securecapita.dto;
 
+import lombok.Builder;
+
 import java.time.LocalDateTime;
 
+@Builder
 public record UserResponseDto(
 
         Long id,

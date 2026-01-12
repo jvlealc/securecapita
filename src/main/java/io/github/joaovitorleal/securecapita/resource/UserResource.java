@@ -3,8 +3,11 @@ package io.github.joaovitorleal.securecapita.resource;
 import io.github.joaovitorleal.securecapita.dto.HttpResponse;
 import io.github.joaovitorleal.securecapita.domain.User;
 import io.github.joaovitorleal.securecapita.dto.UserDto;
+import io.github.joaovitorleal.securecapita.dto.UserRequestDto;
+import io.github.joaovitorleal.securecapita.dto.UserResponseDto;
 import io.github.joaovitorleal.securecapita.dto.form.LoginForm;
 import io.github.joaovitorleal.securecapita.service.UserService;
+import io.github.joaovitorleal.securecapita.utils.UriGenerator;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
@@ -33,17 +36,19 @@ public class UserResource {
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm loginForm) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginForm.getEmail(), loginForm.getPassword()));
-        UserDto userDTO = userService.getUserByEmail(loginForm.getEmail());
-        return userDTO.isUsingMfa() ? this.sendVerificationCode(userDTO) : this.sendResponse(userDTO);
+        UserResponseDto userResponseDto = userService.getUserByEmail(loginForm.getEmail());
+        return userResponseDto.usingMfa()
+                ? this.sendVerificationCode(userResponseDto)
+                : this.sendResponse(userResponseDto);
     }
 
     @PostMapping
-    public ResponseEntity<HttpResponse> createUser(@RequestBody @Valid User user) {
-        UserDto userDTO = userService.createUser(user);
-        return ResponseEntity.created(this.getUri()).body(
+    public ResponseEntity<HttpResponse> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
+        UserResponseDto userResponseDto = userService.createUser(userRequestDto);
+        return ResponseEntity.created(UriGenerator.generate(userResponseDto.id())).body(
                 HttpResponse.builder()
                         .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userDTO))
+                        .data(Map.of("user", userResponseDto))
                         .message("User created")
                         .status(HttpStatus.CREATED)
                         .statusCode(HttpStatus.CREATED.value())
@@ -51,19 +56,11 @@ public class UserResource {
         );
     }
 
-    private URI getUri() {
-        return URI.create(
-                ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/users/<userId>")
-                        .toUriString()
-        );
-    }
-
-    private ResponseEntity<HttpResponse> sendResponse(UserDto userDTO) {
+    private ResponseEntity<HttpResponse> sendResponse(UserResponseDto userResponseDto) {
         return ResponseEntity.ok(
                 HttpResponse.builder()
                         .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userDTO))
+                        .data(Map.of("user", userResponseDto))
                         .message("Login successful")
                         .status(HttpStatus.OK)
                         .statusCode(HttpStatus.OK.value())
@@ -71,12 +68,12 @@ public class UserResource {
         );
     }
 
-    private ResponseEntity<HttpResponse> sendVerificationCode(UserDto userDTO) {
-        userService.sendVerificationCode(userDTO);
+    private ResponseEntity<HttpResponse> sendVerificationCode(UserResponseDto userResponseDto) {
+        userService.sendVerificationCode(userResponseDto);
         return ResponseEntity.ok(
                 HttpResponse.builder()
                         .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userDTO))
+                        .data(Map.of("user", userResponseDto))
                         .message("Verification code sent.")
                         .status(HttpStatus.OK)
                         .statusCode(HttpStatus.OK.value())
