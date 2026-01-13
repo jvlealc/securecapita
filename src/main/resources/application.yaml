@@ -31,9 +31,9 @@ spring:
     password: ${SPRING_MAIL_PASSWORD}
     properties:
       mail:
-        SMTP:
+        smtp:
           auth: true
-          STARTTLS:
+          starttls:
             enable: true
   output:
     ansi:
