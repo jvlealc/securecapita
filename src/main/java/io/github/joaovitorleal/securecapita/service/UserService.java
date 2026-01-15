@@ -110,8 +110,25 @@ public class UserService {
         );
         log.info("2FA Code generated for user {}: {}", existingUser.getEmail(), verificationCode);
 
-        emailService.sendMessage(existingUser.getEmail(), verificationCode);
-        log.info("2FA Code sent to email: {}", existingUser.getEmail());
+        emailService.sendMfaCode(existingUser.getFirstName(), existingUser.getEmail(), code);
+        log.info("MFA Code sent to email: {}", existingUser.getEmail());
+    }
+
+    @Transactional
+    public UserResponseDto verifyMfaCode(String email, String code) {
+        User user = userJpaRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundByEmailException("User not found with email: " + email));
+        MfaVerification verification = twoFactorVerificationJpaRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new MfaVerificationNotFoundByUserIdException("MFA code not found."));
+        if (!verification.getCode().equals(code)) {
+            throw new MfaCodeInvalidException("Invalid MFA code.");
+        }
+        if (verification.getExpirationDate().isBefore(LocalDateTime.now())) {
+            twoFactorVerificationJpaRepository.delete(verification);
+            throw new MfaCodeExpiredException("MFA code expired.");
+        }
+        twoFactorVerificationJpaRepository.delete(verification);
+        return userMapper.toResponseDto(user);
     }
 
     private String getVerificationUrl(String key, String type) {
