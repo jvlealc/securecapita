@@ -2,7 +2,7 @@ package io.github.joaovitorleal.securecapita.service;
 
 import io.github.joaovitorleal.securecapita.domain.AccountVerification;
 import io.github.joaovitorleal.securecapita.domain.Role;
-import io.github.joaovitorleal.securecapita.domain.TwoFactorVerification;
+import io.github.joaovitorleal.securecapita.domain.MfaVerification;
 import io.github.joaovitorleal.securecapita.domain.User;
 import io.github.joaovitorleal.securecapita.domain.enums.VerificationType;
 import io.github.joaovitorleal.securecapita.dto.UserRequestDto;
@@ -14,7 +14,7 @@ import io.github.joaovitorleal.securecapita.exception.UserNotFoundByEmailExcepti
 import io.github.joaovitorleal.securecapita.exception.UserNotFoundByIdException;
 import io.github.joaovitorleal.securecapita.repository.AccountVerificationJpaRepository;
 import io.github.joaovitorleal.securecapita.repository.RoleJpaRepository;
-import io.github.joaovitorleal.securecapita.repository.TwoFactorVerificationJpaRepository;
+import io.github.joaovitorleal.securecapita.repository.MfaVerificationJpaRepository;
 import io.github.joaovitorleal.securecapita.repository.UserJpaRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -36,7 +36,7 @@ public class UserService {
     private final UserJpaRepository userJpaRepository;
     private final RoleJpaRepository roleJpaRepository;
     private final AccountVerificationJpaRepository accountVerificationJpaRepository;
-    private final TwoFactorVerificationJpaRepository  twoFactorVerificationJpaRepository;
+    private final MfaVerificationJpaRepository mfaVerificationJpaRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder encoder;
     private final NotificationService emailService;
@@ -45,7 +45,7 @@ public class UserService {
             UserJpaRepository userJpaRepository,
             RoleJpaRepository roleJpaRepository,
             AccountVerificationJpaRepository accountVerificationJpaRepository,
-            TwoFactorVerificationJpaRepository twoFactorVerificationJpaRepository,
+            MfaVerificationJpaRepository mfaVerificationJpaRepository,
             UserMapper userMapper,
             PasswordEncoder encoder,
             NotificationService emailService
@@ -53,7 +53,7 @@ public class UserService {
         this.userJpaRepository = userJpaRepository;
         this.roleJpaRepository = roleJpaRepository;
         this.accountVerificationJpaRepository = accountVerificationJpaRepository;
-        this.twoFactorVerificationJpaRepository = twoFactorVerificationJpaRepository;
+        this.mfaVerificationJpaRepository = mfaVerificationJpaRepository;
         this.userMapper = userMapper;
         this.encoder = encoder;
         this.emailService = emailService;
@@ -95,20 +95,20 @@ public class UserService {
     }
 
     @Transactional
-    public void sendVerificationCode(UserResponseDto userResponseDto) {
+    public void sendMfaCode(UserResponseDto userResponseDto) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(1).truncatedTo(ChronoUnit.SECONDS);
-        String verificationCode = RandomStringUtils.secure().nextAlphanumeric(8).toUpperCase();
-        twoFactorVerificationJpaRepository.deleteByUserId(userResponseDto.id());
+        String code = RandomStringUtils.secure().nextAlphanumeric(8).toUpperCase();
+        mfaVerificationJpaRepository.deleteByUserId(userResponseDto.id());
         User existingUser = userJpaRepository.findById(userResponseDto.id())
                 .orElseThrow(() -> new UserNotFoundByIdException("User not found with id: " + userResponseDto.id()));
-        twoFactorVerificationJpaRepository.save(
-                TwoFactorVerification.builder()
+        mfaVerificationJpaRepository.save(
+                MfaVerification.builder()
                         .user(existingUser)
-                        .code(verificationCode)
+                        .code(code)
                         .expirationDate(expirationDate)
                         .build()
         );
-        log.info("2FA Code generated for user {}: {}", existingUser.getEmail(), verificationCode);
+        log.info("MFA Code generated for user {}: {}", existingUser.getEmail(), code);
 
         emailService.sendMfaCode(existingUser.getFirstName(), existingUser.getEmail(), code);
         log.info("MFA Code sent to email: {}", existingUser.getEmail());
