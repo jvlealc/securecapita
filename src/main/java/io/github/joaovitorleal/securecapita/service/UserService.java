@@ -7,11 +7,8 @@ import io.github.joaovitorleal.securecapita.domain.User;
 import io.github.joaovitorleal.securecapita.domain.enums.VerificationType;
 import io.github.joaovitorleal.securecapita.dto.UserRequestDto;
 import io.github.joaovitorleal.securecapita.dto.UserResponseDto;
+import io.github.joaovitorleal.securecapita.exception.*;
 import io.github.joaovitorleal.securecapita.mapper.UserMapper;
-import io.github.joaovitorleal.securecapita.exception.EmailAlreadyExistsException;
-import io.github.joaovitorleal.securecapita.exception.RoleNotFoundByNameException;
-import io.github.joaovitorleal.securecapita.exception.UserNotFoundByEmailException;
-import io.github.joaovitorleal.securecapita.exception.UserNotFoundByIdException;
 import io.github.joaovitorleal.securecapita.repository.AccountVerificationJpaRepository;
 import io.github.joaovitorleal.securecapita.repository.RoleJpaRepository;
 import io.github.joaovitorleal.securecapita.repository.MfaVerificationJpaRepository;
@@ -124,16 +121,16 @@ public class UserService {
     public UserResponseDto verifyMfaCode(String email, String code) {
         User user = userJpaRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundByEmailException("User not found with email: " + email));
-        MfaVerification verification = twoFactorVerificationJpaRepository.findByUserId(user.getId())
+        MfaVerification mfaVerification = mfaVerificationJpaRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new MfaVerificationNotFoundByUserIdException("MFA code not found."));
-        if (!verification.getCode().equals(code)) {
+        if (!mfaVerification.getCode().equals(code)) {
             throw new MfaCodeInvalidException("Invalid MFA code.");
         }
-        if (verification.getExpirationDate().isBefore(LocalDateTime.now())) {
-            twoFactorVerificationJpaRepository.delete(verification);
+        if (mfaVerification.getExpirationDate().isBefore(LocalDateTime.now())) {
+            mfaVerificationJpaRepository.delete(mfaVerification);
             throw new MfaCodeExpiredException("MFA code expired.");
         }
-        twoFactorVerificationJpaRepository.delete(verification);
+        mfaVerificationJpaRepository.delete(mfaVerification);
         return userMapper.toResponseDto(user);
     }
 
