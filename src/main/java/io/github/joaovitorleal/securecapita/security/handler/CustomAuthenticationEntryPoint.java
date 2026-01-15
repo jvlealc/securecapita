@@ -16,23 +16,37 @@ import java.time.Instant;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
+    public static final String UNAUTHORIZE_MESSAGE = "You need to log in to access this resource.";
+
+    private final ObjectMapper objectMapper;
+
+    public CustomAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+
+        String errorMessage = (authException != null && authException.getMessage() != null)
+                ? authException.getMessage()
+                : UNAUTHORIZE_MESSAGE;
+
         ApiResponseDto httpResponse = ApiResponseDto.builder()
                 .timestamp(Instant.now().toString())
-                .reason("You need to log in to access this resource.")
+                .reason(errorMessage)
                 .status(HttpStatus.UNAUTHORIZED)
+
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .build();
+
         response.setContentType(APPLICATION_JSON_VALUE);
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
+
         OutputStream out = response.getOutputStream();
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(out, httpResponse);
+        objectMapper.writeValue(out, httpResponse);
         out.flush();
     }
 }
