@@ -2,7 +2,10 @@ spring:
   application:
     name: secure-capita
   profiles:
-    active: @spring.profiles.active@
+    active: @spring.profiles.active@s
+  mvc:
+    problemdetails:
+      enabled: true
   datasource:
     url: ${SECURECAPITA_DB_URL}
     username: ${SECURECAPITA_DB_USERNAME}
