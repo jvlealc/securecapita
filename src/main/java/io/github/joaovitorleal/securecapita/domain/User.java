@@ -1,29 +1,25 @@
 package io.github.joaovitorleal.securecapita.domain;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "users")
-@Data
-@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+@Builder
+@Getter
+@Setter
 public class User implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,6 +61,7 @@ public class User implements Serializable {
     @Column(name = "using_mfa", columnDefinition = "boolean default false", nullable = false)
     private boolean usingMfa = false;
 
+    @Builder.Default
     @Column(name = "image_url")
     private String imageUrl = "https://cdn-icons-png.flaticon.com/512/3033/3033143.png";
 
@@ -79,5 +76,38 @@ public class User implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id")
     )
     private Role role;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", phone='" + phone + '\'' +
+                ", address='" + address + '\'' +
+                ", title='" + title + '\'' +
+                ", bio='" + bio + '\'' +
+                ", enabled=" + enabled +
+                ", nonLocked=" + nonLocked +
+                ", usingMfa=" + usingMfa +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", createdAt=" + createdAt +
+                ", roleId=" + (role != null ? role.getId() : null) +
+                ", roleName=" + (role != null ? role.getName() : null) +
+                '}';
+    }
 }
 
