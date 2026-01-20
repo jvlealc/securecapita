@@ -1,62 +1,105 @@
 package io.github.joaovitorleal.securecapita.controller;
 
+import io.github.joaovitorleal.securecapita.controller.utils.UriGenerator;
+import io.github.joaovitorleal.securecapita.domain.User;
 import io.github.joaovitorleal.securecapita.dto.ApiResponseDto;
+import io.github.joaovitorleal.securecapita.dto.MfaVerificationRequestDto;
 import io.github.joaovitorleal.securecapita.dto.UserRequestDto;
 import io.github.joaovitorleal.securecapita.dto.UserResponseDto;
 import io.github.joaovitorleal.securecapita.dto.form.LoginFormDto;
+import io.github.joaovitorleal.securecapita.security.model.CustomUserDetails;
+import io.github.joaovitorleal.securecapita.security.provider.TokenProvider;
 import io.github.joaovitorleal.securecapita.service.UserService;
-import io.github.joaovitorleal.securecapita.controller.utils.UriGenerator;
 import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.unauthenticated;
+
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final TokenProvider tokenProvider;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDto> login(@RequestBody @Valid LoginFormDto loginForm) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginForm.email(), loginForm.password()));
-        UserResponseDto userResponseDto = userService.getUserByEmail(loginForm.email());
+        Authentication authentication = authenticationManager.authenticate(unauthenticated(loginForm.email(), loginForm.password()));
+        CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
+        UserResponseDto userResponseDto = userService.getUserDtoByEmail(loginForm.email());
         return userResponseDto.usingMfa()
                 ? this.sendVerificationCode(userResponseDto)
-                : this.sendResponse(userResponseDto);
+                : this.sendLoginSuccessResponse(userResponseDto, userPrincipal);
     }
 
     @PostMapping
     public ResponseEntity<ApiResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
         UserResponseDto userResponseDto = userService.createUser(userRequestDto);
-        return ResponseEntity.created(UriGenerator.generate(userResponseDto.id())).body(
+        return ResponseEntity.created(UriGenerator.generate(userResponseDto.id()))
+                .body(
+                        ApiResponseDto.builder()
+                                .timestamp(LocalDateTime.now().toString())
+                                .data(Map.of("user", userResponseDto))
+                                .message("User created")
+                                .status(HttpStatus.CREATED)
+                                .statusCode(HttpStatus.CREATED.value())
+                                .build()
+                );
+    }
+
+    @PostMapping("/verify/code")
+    public ResponseEntity<ApiResponseDto> verifyCode(@RequestBody @Valid MfaVerificationRequestDto mfaVerificationRequestDto) {
+        UserResponseDto userResponseDto = userService.verifyMfaCode(mfaVerificationRequestDto.email(), mfaVerificationRequestDto.code());
+        return ResponseEntity.ok(
                 ApiResponseDto.builder()
                         .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userResponseDto))
-                        .message("User created")
-                        .status(HttpStatus.CREATED)
-                        .statusCode(HttpStatus.CREATED.value())
+                        .data(Map.of(
+                                "user", userResponseDto,
+                                "access_token", tokenProvider.createAccessToken(this.getUserPrincipal(userResponseDto)),
+                                "refresh_token", tokenProvider.createRefreshToken(this.getUserPrincipal(userResponseDto))
+                        ))
+                        .message("Login successful")
+                        .status(HttpStatus.OK)
+                        .statusCode(HttpStatus.OK.value())
                         .build()
         );
     }
 
-    private ResponseEntity<ApiResponseDto> sendResponse(UserResponseDto userResponseDto) {
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponseDto> getUserProfile(Authentication authentication) {
+        UserResponseDto userResponseDto = userService.getUserDtoByEmail(authentication.getName());
         return ResponseEntity.ok(
                 ApiResponseDto.builder()
                         .timestamp(LocalDateTime.now().toString())
                         .data(Map.of("user", userResponseDto))
+                        .message("Profile retrieved")
+                        .status(HttpStatus.OK)
+                        .statusCode(HttpStatus.OK.value())
+                        .build()
+        );
+    }
+
+    private ResponseEntity<ApiResponseDto> sendLoginSuccessResponse(UserResponseDto userResponseDto, CustomUserDetails userPrincipal) {
+        return ResponseEntity.ok(
+                ApiResponseDto.builder()
+                        .timestamp(LocalDateTime.now().toString())
+                        .data(Map.of(
+                                "user", userResponseDto,
+                                "access_token", tokenProvider.createAccessToken(userPrincipal),
+                                "refresh_token", tokenProvider.createRefreshToken(userPrincipal)
+                        ))
                         .message("Login successful")
                         .status(HttpStatus.OK)
                         .statusCode(HttpStatus.OK.value())
@@ -65,33 +108,21 @@ public class UserController {
     }
 
     private ResponseEntity<ApiResponseDto> sendVerificationCode(UserResponseDto userResponseDto) {
-        userService.sendVerificationCode(userResponseDto);
-        return ResponseEntity.ok(
-                ApiResponseDto.builder()
-                        .timestamp(LocalDateTime.now().toString())
-                        .data(Map.of("user", userResponseDto))
-                        .message("Verification code sent.")
-                        .status(HttpStatus.OK)
-                        .statusCode(HttpStatus.OK.value())
-                        .build()
-        );
+        userService.sendMfaCode(userResponseDto);
+        return ResponseEntity.accepted()
+                .body(
+                    ApiResponseDto.builder()
+                            .timestamp(LocalDateTime.now().toString())
+                            .data(Map.of("email", userResponseDto.email(), "mfaRequired", true))
+                            .message("Verification code sent.")
+                            .status(HttpStatus.ACCEPTED)
+                            .statusCode(HttpStatus.ACCEPTED.value())
+                            .build()
+                );
+    }
+
+    private CustomUserDetails getUserPrincipal(UserResponseDto userResponseDto) {
+        User user = userService.getUserByEmail(userResponseDto.email());
+        return new CustomUserDetails(user, user.getRole().getPermission());
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
