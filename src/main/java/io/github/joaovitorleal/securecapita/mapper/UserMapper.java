@@ -11,6 +11,12 @@ import java.util.Objects;
 @Component
 public class UserMapper {
 
+    private final RoleMapper roleMapper;
+
+    public UserMapper(RoleMapper roleMapper) {
+        this.roleMapper = roleMapper;
+    }
+
     public UserResponseDto toResponseDto(User user) {
         Objects.requireNonNull(user, "The entity User must not be null when convert to DTO.");
         return new UserResponseDto(
@@ -26,7 +32,8 @@ public class UserMapper {
                 user.isNonLocked(),
                 user.isUsingMfa(),
                 user.getImageUrl(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                roleMapper.toDto(user.getRole())
         );
     }
 
