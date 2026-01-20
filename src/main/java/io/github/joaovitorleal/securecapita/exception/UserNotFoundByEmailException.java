@@ -2,7 +2,7 @@ package io.github.joaovitorleal.securecapita.exception;
 
 public class UserNotFoundByEmailException extends ResourceNotFoundException {
 
-    public UserNotFoundByEmailException(String message) {
-        super(message);
+    public UserNotFoundByEmailException(String userEmail) {
+        super("User not found with email: " + userEmail);
     }
 }
