@@ -10,16 +10,17 @@ import java.util.Collection;
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
-    private final String permissions;
+    private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(User user, String permissions) {
+    public CustomUserDetails(User user) {
         this.user = user;
-        this.permissions = permissions;
+        String permissions = (user.getRole() != null) ? user.getRole().getPermission() : "";
+        this.authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(permissions);
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return AuthorityUtils.commaSeparatedStringToAuthorityList(this.permissions);
+        return this.authorities;
     }
 
     @Override
@@ -39,7 +40,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true;
     }
 
     @Override
@@ -47,7 +48,6 @@ public class CustomUserDetails implements UserDetails {
         return this.user.isEnabled();
     }
 
-    @SuppressWarnings("Dont use lombok")
     public User getUser() {
         return this.user;
     }
