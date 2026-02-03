@@ -1,6 +1,8 @@
 package io.github.joaovitorleal.securecapita.exception;
 
-public class MfaVerificationNotFoundByUserIdException extends  ApiException {
+import javax.naming.AuthenticationException;
+
+public class MfaVerificationNotFoundByUserIdException extends AuthenticationException {
 
     public MfaVerificationNotFoundByUserIdException(String message) {
         super(message);
