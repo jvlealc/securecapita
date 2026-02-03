@@ -6,7 +6,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import io.github.joaovitorleal.securecapita.dto.UserResponseDto;
 import io.github.joaovitorleal.securecapita.exception.JwtAuthenticationInvalidException;
 import io.github.joaovitorleal.securecapita.security.model.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
@@ -56,7 +55,7 @@ public class TokenProvider {
                 .withSubject(userPrincipal.getUsername())
                 .withArrayClaim(AUTHORITIES, this.getClaimsFromUser(userPrincipal))
                 .withExpiresAt(new Date(currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_TIME_MILLIS))
-                .sign(Algorithm.HMAC512(secret.getBytes()));
+                .sign(Algorithm.HMAC512(secret.getBytes(StandardCharsets.UTF_8)));
     }
 
     public String createRefreshToken(CustomUserDetails userPrincipal) {
@@ -79,7 +78,7 @@ public class TokenProvider {
             request.setAttribute("invalidClaim", e.getMessage());
             throw new JwtAuthenticationInvalidException(MESSAGE_TOKEN_INVALID, e);
         } catch (Exception e) {
-            LOGGER.error("Internal error verifying token subject.s", e);
+            LOGGER.error("Internal error verifying token subjects.", e);
             throw new JwtAuthenticationInvalidException(MESSAGE_TOKEN_ERROR, e);
         }
     }
@@ -96,6 +95,7 @@ public class TokenProvider {
         return  usernamePasswordAuthToken;
     }
 
+    @Deprecated(forRemoval = true)
     public boolean isTokenValid(String email, String token) {
        try {
            if (StringUtils.isBlank(email)) {
@@ -103,7 +103,7 @@ public class TokenProvider {
            }
            return  !this.isTokenExpired(this.getJWTVerifier(), token);
        } catch (JWTVerificationException e) {
-           LOGGER.debug("Token validation failed: {}", e.getMessage());
+           LOGGER.debug("[isTokenValid] Token validation failed: {}", e.getMessage());
            return false;
        }
     }
@@ -121,6 +121,7 @@ public class TokenProvider {
                     .getClaim(AUTHORITIES)
                     .asArray(String.class);
         } catch (JWTVerificationException e) {
+            LOGGER.debug("[getClaimsFromToken] Token validation failed: {}", e.getMessage(), e);
             throw new JwtAuthenticationInvalidException(MESSAGE_TOKEN_INVALID, e);
         }
     }
@@ -131,6 +132,7 @@ public class TokenProvider {
                 .build();
     }
 
+    @Deprecated(forRemoval = true)
     private boolean isTokenExpired(JWTVerifier verifier, String token) {
         Date expiration = verifier.verify(token).getExpiresAt();
         return expiration.before(new Date());
