@@ -34,6 +34,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         );
 
         problemDetail.setTitle("Authentication Required");
+        problemDetail.setType(URI.create("urn:securecapita:error:auth"));
         problemDetail.setInstance(URI.create(request.getRequestURI()));
         problemDetail.setProperty("timestamp", Instant.now());
 
