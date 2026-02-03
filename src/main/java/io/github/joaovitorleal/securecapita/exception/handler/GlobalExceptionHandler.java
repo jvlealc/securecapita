@@ -50,7 +50,76 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problemDetail.setProperty("errors", validationErrors);
         problemDetail.setProperty("timestamp", Instant.now());
 
-        return ResponseEntity.status(statusCode).body(problemDetail);
+        return ResponseEntity.status(status).body(problemDetail);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            @Nonnull HttpMessageNotReadableException ex,
+            @Nonnull HttpHeaders headers,
+            @Nonnull HttpStatusCode status,
+            @Nonnull WebRequest request
+    ) {
+        HttpServletRequest servletRequest = ((ServletWebRequest) request).getRequest();
+
+        log.warn("Malformed JSON at: [{}]: {}", servletRequest.getRequestURI(), ex.getMessage(), ex);
+
+        String message = "Malformed JSON request or invalid field type.";
+        if (ex.getCause() instanceof InvalidFormatException invalidFormatException) {
+            String fieldName = invalidFormatException.getPath()
+                    .stream()
+                    .map(JsonMappingException.Reference::getFieldName) // nome do campo no JSON
+                    .reduce((previous, current) -> previous + "." + current) // concatena níveis, se houver campos aninhados
+                    .orElse("unknown");
+
+            message += " Field: " + fieldName;
+        }
+        return ResponseEntity
+                .status(status)
+                .body(this.createProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        message,
+                        "Malformed JSON",
+                        servletRequest
+                ));
+    }
+
+    @Override
+    public ResponseEntity<Object> handleNoHandlerFoundException(
+            @Nonnull NoHandlerFoundException ex,
+            @Nonnull HttpHeaders headers,
+            @Nonnull HttpStatusCode status,
+            @Nonnull WebRequest request
+    ) {
+        HttpServletRequest servletRequest = ((ServletWebRequest) request).getRequest();
+        log.warn("Endpoint [{}] not found for this method {}", servletRequest.getRequestURI(), ex.getHttpMethod());
+        return ResponseEntity
+                .status(status)
+                .body(this.createProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "The URI " + servletRequest.getRequestURI() + " does not exist on server.",
+                        "Resource Not Found",
+                        servletRequest
+                ));
+    }
+
+    @Override
+    public ResponseEntity<Object> handleHttpRequestMethodNotSupported(
+            @Nonnull HttpRequestMethodNotSupportedException ex,
+            @Nonnull HttpHeaders headers,
+            @Nonnull HttpStatusCode status,
+            @Nonnull WebRequest request
+    ) {
+        HttpServletRequest servletRequest = ((ServletWebRequest) request).getRequest();
+        log.warn("Method not supported {} at [{}]", ex.getMethod(), servletRequest.getRequestURI());
+        return ResponseEntity
+                .status(status)
+                .body(this.createProblemDetail(
+                        HttpStatus.METHOD_NOT_ALLOWED,
+                        "Method " + ex.getMethod() + " is not allowed on this resource.",
+                        "Method Not Allowed",
+                        servletRequest
+                ));
     }
 
     @ExceptionHandler(ApiException.class)
