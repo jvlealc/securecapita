@@ -14,14 +14,16 @@ import org.springframework.stereotype.Service;
 public class EmailService implements NotificationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
+
+    private static final String ENCODING = "UTF-8";
     private static final String GENERAL_SUBJECT = "SecureCapita - Notification";
     private static final String MFA_SUBJECT = "SecureCapita - Verification Code";
     private static final String RESET_PASSWORD_SUBJECT = "SecureCapita - Reset Password";
-    private static final String ENCODING = "UTF-8";
+    private static final String RESET_PASSWORD_CONFIRMATION_SUBJECT = "SecureCapita - Password Changed Successfully";
 
     private final JavaMailSender mailSender;
 
-    @Value("spring.mail.username")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
     public EmailService(JavaMailSender mailSender) {
@@ -29,8 +31,10 @@ public class EmailService implements NotificationService {
     }
 
     /**
-     * @param to Email recipient
-     * @param message body of the message
+     * Enviar mensagem de notificações genéricas.
+     *
+     * @param to Destinatário do email.
+     * @param message corpo da mensagem.
      */
     @Async("emailExecutor")
     @Override
@@ -40,9 +44,11 @@ public class EmailService implements NotificationService {
     }
 
     /**
-     * @param userFirstName
-     * @param to Email recipient
-     * @param mfaCode Two-Factor Authentication code
+     * Enviar de código de autenticação Multifator.
+     *
+     * @param  userFirstName Primeiro nome do usuário.
+     * @param to Destinatário do email.
+     * @param mfaCode Código de autenticação Multifator (Two-Factor Authentication).
      */
     @Async("emailExecutor")
     @Override
@@ -53,9 +59,11 @@ public class EmailService implements NotificationService {
     }
 
     /**
-     * @param userFirstName
-     * @param to Email recipient
-     * @param verificationUrl  Verification URL to reset password
+     * Enviar URL de verificação de redefinição de senha.
+     *
+     * @param userFirstName Primeiro nome do usuário.
+     * @param to Destinatário do email.
+     * @param verificationUrl  URL de verificação para redefinir senha.
      */
     @Async("emailExecutor")
     @Override
@@ -66,7 +74,26 @@ public class EmailService implements NotificationService {
     }
 
     /**
+     * Enviar mensagem de sucesso na alteração de senha.
+     *
+     * @param userFirstName Primeiro nome do usuário
+     * @param to Destinatário do email.
+     */
+    @Async("emailExecutor")
+    @Override
+    public void sendResetPasswordConfirmationMessage(String userFirstName, String to) {
+        String htmlBody = this.buildResetPasswordConfirmationBody(userFirstName);
+        this.sendEmail(to, RESET_PASSWORD_CONFIRMATION_SUBJECT, htmlBody);
+        LOGGER.info("Reset Password Confirmation Message sent to: {}", to);
+    }
+
+    /**
      * Centralizar lógica de envio de emails.
+     *
+     * @param to Destinatário do email.
+     * @param subject Título do email.
+     * @param messageBody corpo do texto ou HTML da mensagem.
+     * @throws EmailDeliveryFailureException caso ocorra falha no envio do email.
      * */
     private void sendEmail(String to, String subject, String messageBody) {
         try {
@@ -131,6 +158,32 @@ public class EmailService implements NotificationService {
                     </html>
                 """,
                 userFirstName, verificationUrl, verificationUrl, verificationUrl
+        );
+    }
+
+    private String buildResetPasswordConfirmationBody(String userFirstName) {
+        return String.format(
+                """
+                    <html>
+                        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;">
+                                <h1 style="color: #2c3e50;">SecureCapita</h1>
+                                <p>Hello, <strong>%s</strong>,</p>
+                                <p>This is a confirmation that the password for your SecureCapita account has been successfully changed.</p>
+
+                                <div style="background-color: #f0fdf4; border-left: 4px solid #2ecc71; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; color: #27ae60;"><strong>✓ Success:</strong> Your account is secured with the new password.</p>
+                                </div>
+    
+                                <p>If you did not perform this action, please contact our support immediately to secure your account.</p>
+
+                                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #bdc3c7;">SecureCapita Security Team</p>
+                            </div>
+                        </body>
+                    </html>
+                """,
+                userFirstName
         );
     }
 }
