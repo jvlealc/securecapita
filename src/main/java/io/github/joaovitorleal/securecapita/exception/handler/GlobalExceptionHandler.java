@@ -178,6 +178,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({
+            PasswordMismatchException.class,
+            ResetPasswordVerificationInvalidException.class,
+            ResetPasswordVerificationExpiredException.class,
+            AuthenticatedPasswordIncorrectException.class
+    })
+    public ProblemDetail handlePasswordBusinessException(final ApiException ex, final HttpServletRequest request) {
+        log.warn("Password redefinition failure. Specific class: {} : {}", ex.getClass().getSimpleName(), ex.getMessage());
+        String title = switch (ex) {
+            case ResetPasswordVerificationInvalidException e -> "Reset Password Link Invalid";
+            case ResetPasswordVerificationExpiredException e ->  "Reset Password Link Expired";
+            case PasswordMismatchException e ->  "Password Mismatch";
+            case AuthenticatedPasswordIncorrectException e -> "Password Incorrect";
+            default -> "Password Validation Error";
+        };
+        return this.createProblemDetail(HttpStatus.BAD_REQUEST, ex.getMessage(), title, request);
+    }
+
+    @ExceptionHandler({
             MfaCodeInvalidException.class,
             MfaCodeExpiredException.class,
             MfaVerificationNotFoundByUserIdException.class
