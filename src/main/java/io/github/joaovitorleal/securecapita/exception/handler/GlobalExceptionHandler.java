@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.joaovitorleal.securecapita.exception.*;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
@@ -139,9 +141,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(ApiException.class)
-    public ProblemDetail handleApiException(final ApiException ex, final HttpServletRequest request) {
-        log.error("[ApiException] Internal server error at URI [{}]: {} - {}",
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolationException(final ConstraintViolationException ex, final HttpServletRequest request) {
+        log.warn("Constraint violation at [{}]: {}", request.getRequestURI(), ex.getMessage());
+
+        String errorMessage = ex.getConstraintViolations()
+                .stream()
+                .map(ConstraintViolation::getMessage)
+                .findFirst()
+                .orElse("Validation failed for path or query parameters.");
+
+        return this.createProblemDetail(HttpStatus.BAD_REQUEST, errorMessage, "Parameter Validation Error", request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUntreatedException(final Exception ex, final HttpServletRequest request) {
+        log.error("Unexpected internal server error at URI [{}]: {} - {}",
                 request.getRequestURI(),
                 ex.getClass().getSimpleName(),
                 ex.getMessage(),
@@ -150,9 +165,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return this.createProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE, INTERNAL_SERVER_ERROR_TITLE, request);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleUntreatedException(final Exception ex, final HttpServletRequest request) {
-        log.error("Unexpected internal server error at URI [{}]: {} - {}",
+    @ExceptionHandler(ApiException.class)
+    public ProblemDetail handleApiException(final ApiException ex, final HttpServletRequest request) {
+        log.error("[ApiException] Internal server error at URI [{}]: {} - {}",
                 request.getRequestURI(),
                 ex.getClass().getSimpleName(),
                 ex.getMessage(),
@@ -200,7 +215,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             MfaCodeExpiredException.class,
             MfaVerificationNotFoundByUserIdException.class
     })
-    public ProblemDetail handleMfaAuthenticationFailureException(final Exception ex, final HttpServletRequest request) {
+    public ProblemDetail handleMfaAuthenticationFailureException(final AuthenticationException ex, final HttpServletRequest request) {
         log.warn("MFA Authentication failure: class: {}, for URI [{}]: {}",
                 ex.getClass().getSimpleName(),
                 request.getRequestURI(),
