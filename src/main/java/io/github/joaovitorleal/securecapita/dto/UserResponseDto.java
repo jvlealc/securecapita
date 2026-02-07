@@ -1,6 +1,7 @@
 package io.github.joaovitorleal.securecapita.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.github.joaovitorleal.securecapita.domain.enums.MfaType;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ public record UserResponseDto(
         boolean enabled,
         boolean nonLocked,
         boolean usingMfa,
+        MfaType mfaType,
         String imageUrl,
         LocalDateTime createdAt,
         RoleDto role
