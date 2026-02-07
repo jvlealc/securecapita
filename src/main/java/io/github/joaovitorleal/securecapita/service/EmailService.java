@@ -20,6 +20,8 @@ public class EmailService implements NotificationService {
     private static final String MFA_SUBJECT = "SecureCapita - Verification Code";
     private static final String RESET_PASSWORD_SUBJECT = "SecureCapita - Reset Password";
     private static final String RESET_PASSWORD_CONFIRMATION_SUBJECT = "SecureCapita - Password Changed Successfully";
+    private static final String ACCOUNT_VERIFICATION_SUBJECT = "SecureCapita - Verify Your Account";
+    private static final String ACCOUNT_VERIFIED_SUBJECT = "SecureCapita - Account Verified Successfully";
 
     private final JavaMailSender mailSender;
 
@@ -88,6 +90,35 @@ public class EmailService implements NotificationService {
     }
 
     /**
+     * Enviar URL de ativação de conta.
+     *
+     * @param userFirstName Primeiro nome do usuário.
+     * @param to Destinatário do email.
+     * @param verificationUrl URL de ativação de conta.
+     */
+    @Async("emailExecutor")
+    @Override
+    public void sendAccountVerificationUrl(String userFirstName, String to, String verificationUrl) {
+        String htmlBody = this.buildAccountVerificationBody(userFirstName, verificationUrl);
+        this.sendEmail(to, ACCOUNT_VERIFICATION_SUBJECT, htmlBody);
+        LOGGER.info("Account verification URL sent to: {}", to);
+    }
+
+    /**
+     * Envia email de sucesso da ativação de conta
+     *
+     * @param userFirstName Primeiro nome do usuário
+     * @param to Destinatário do email
+     */
+    @Async("emailExecutor")
+    @Override
+    public void sendAccountVerifiedMessage(String userFirstName, String to) {
+        String htmlBody = this.buildAccountVerifiedBody(userFirstName);
+        this.sendEmail(to, ACCOUNT_VERIFIED_SUBJECT, htmlBody);
+        LOGGER.info("Account Verified Message sent to: {}", to);
+    }
+
+    /**
      * Centralizar lógica de envio de emails.
      *
      * @param to Destinatário do email.
@@ -112,6 +143,7 @@ public class EmailService implements NotificationService {
         }
     }
 
+    // Helpers
     private String buildMfaEmailBody(String userFirstName, String mfaCode) {
         return String.format(
                 """
@@ -179,6 +211,61 @@ public class EmailService implements NotificationService {
 
                                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                                 <p style="font-size: 12px; color: #bdc3c7;">SecureCapita Security Team</p>
+                            </div>
+                        </body>
+                    </html>
+                """,
+                userFirstName
+        );
+    }
+
+    private String buildAccountVerificationBody(String userFirstName, String verificationUrl) {
+        return String.format(
+                """
+                    <html>
+                        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;">
+                                <h1 style="color: #2c3e50;">SecureCapita</h1>
+                                <p>Hello, <strong>%s</strong>,</p>
+                                <p>Welcome to SecureCapita! To start using your account, please verify your email address by clicking the button below:</p>
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="%s"
+                                       style="background-color: #3498db; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                                       Verify Account
+                                    </a>
+                                </div>
+                                <p style="font-size: 12px; color: #7f8c8d;">
+                                    If the button doesn't work, copy and paste this URL into your browser:<br>
+                                    <a href="%s" style="color: #3498db;">%s</a>
+                                </p>
+                                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #bdc3c7;">If you did not create an account, no further action is required.</p>
+                            </div>
+                        </body>
+                    </html>
+                """,
+                userFirstName, verificationUrl, verificationUrl, verificationUrl
+        );
+    }
+
+    private String buildAccountVerifiedBody(String userFirstName) {
+        return String.format(
+                """
+                    <html>
+                        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;">
+                                <h1 style="color: #2c3e50;">SecureCapita</h1>
+                                <p>Hello, <strong>%s</strong>,</p>
+                                <p>Great news! Your account has been successfully verified.</p>
+
+                                <div style="background-color: #f0fdf4; border-left: 4px solid #2ecc71; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; color: #27ae60;"><strong>✓ Account Activated:</strong> You can now log in and access all features.</p>
+                                </div>
+    
+                                <p>Thank you for joining SecureCapita.</p>
+
+                                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #bdc3c7;">SecureCapita Team</p>
                             </div>
                         </body>
                     </html>

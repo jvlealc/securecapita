@@ -70,4 +70,23 @@ public class SmsService implements NotificationService {
     public void sendResetPasswordConfirmationMessage(String userFirstName, String to) {
         //...
     }
+
+    /**
+     * @param userFirstName
+     * @param to
+     * @param verificationUrl
+     */
+    @Override
+    public void sendAccountVerificationUrl(String userFirstName, String to, String verificationUrl) {
+        //...
+    }
+
+    /**
+     * @param userFirstName
+     * @param to
+     */
+    @Override
+    public void sendAccountVerifiedMessage(String userFirstName, String to) {
+        //...
+    }
 }
