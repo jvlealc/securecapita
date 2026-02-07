@@ -1,5 +1,6 @@
 package io.github.joaovitorleal.securecapita.domain;
 
+import io.github.joaovitorleal.securecapita.domain.enums.MfaType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -60,6 +61,11 @@ public class User implements Serializable {
     @Builder.Default
     @Column(name = "using_mfa", columnDefinition = "boolean default false", nullable = false)
     private boolean usingMfa = false;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mfa_type", length = 10, nullable = false)
+    private MfaType mfaType = MfaType.EMAIL;
 
     @Builder.Default
     @Column(name = "image_url")
