@@ -33,18 +33,20 @@ CREATE TABLE IF NOT EXISTS users
     first_name VARCHAR(40)     NOT NULL,
     last_name  VARCHAR(40)     NOT NULL,
     email      VARCHAR(100)    NOT NULL,
-    password   VARCHAR(255) DEFAULT NULL,
-    phone      VARCHAR(30)  DEFAULT NULL,
-    address    VARCHAR(255) DEFAULT NULL,
-    title      VARCHAR(50)  DEFAULT NULL,
-    bio        VARCHAR(500) DEFAULT NULL,
-    enabled    BOOLEAN      DEFAULT FALSE,
-    non_locked BOOLEAN      DEFAULT TRUE,
-    using_mfa  BOOLEAN      DEFAULT FALSE,
-    image_url  VARCHAR(255) DEFAULT 'https://cdn-icons-png.flaticon.com/512/3033/3033143.png',
-    created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    password   VARCHAR(255)    DEFAULT NULL,
+    phone      VARCHAR(30)     DEFAULT NULL,
+    address    VARCHAR(255)    DEFAULT NULL,
+    title      VARCHAR(50)     DEFAULT NULL,
+    bio        VARCHAR(500)    DEFAULT NULL,
+    enabled    BOOLEAN         DEFAULT FALSE,
+    non_locked BOOLEAN         DEFAULT TRUE,
+    using_mfa  BOOLEAN         DEFAULT FALSE,
+    mfa_type   VARCHAR(10)     NOT NULL DEFAULT 'EMAIL',
+    image_url  VARCHAR(255)    DEFAULT 'https://cdn-icons-png.flaticon.com/512/3033/3033143.png',
+    created_at DATETIME        DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT uq_users_email UNIQUE (email)
+    CONSTRAINT uq_users_email UNIQUE (email),
+    CONSTRAINT chk_users_mfa_type CHECK (mfa_type IN ('EMAIL', 'SMS'))
 ) ENGINE = InnoDB;
 
 -- Tabela de grupos de usuários e permissões
@@ -83,7 +85,7 @@ CREATE TABLE IF NOT EXISTS `events`
                'LOGIN_ATTEMPT', 'LOGIN_ATTEMPT_FAILURE', 'LOGIN_ATTEMPT_SUCCESS',
                'PROFILE_UPDATE', 'PROFILE_PICTURE_UPDATE', 'ROLE_UPDATE',
                'ACCOUNT_SETTINGS_UPDATE', 'PASSWORD_UPDATE', 'MFA_UPDATE'
-        ))
+    ))
 ) ENGINE = InnoDB;
 
 -- Log e Auditoria
