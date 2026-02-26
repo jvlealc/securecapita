@@ -3,7 +3,6 @@ package io.github.jvlealc.securecapita.exception.handler;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.jvlealc.securecapita.exception.*;
-import io.github.jvlealc.securecapita.exception.*;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
